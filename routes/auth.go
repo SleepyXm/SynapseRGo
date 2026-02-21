@@ -3,9 +3,8 @@ package routes
 import (
 	"database/sql"
 
-	"github.com/SleepyXm/SynapseRGo/middleware"
-
 	"github.com/SleepyXm/SynapseRGo/handlers"
+	"github.com/SleepyXm/SynapseRGo/middleware"
 
 	"github.com/gin-gonic/gin"
 )
