@@ -1,9 +1,11 @@
 package routes
 
 import (
-	"api/test/handlers"
-	"api/test/middleware"
 	"database/sql"
+
+	"github.com/SleepyXm/SynapseRGo/middleware"
+
+	"github.com/SleepyXm/SynapseRGo/handlers"
 
 	"github.com/gin-gonic/gin"
 )

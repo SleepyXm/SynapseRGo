@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	"api/test/structs"
+	"github.com/SleepyXm/SynapseRGo/structs"
 
 	"github.com/google/uuid"
 )

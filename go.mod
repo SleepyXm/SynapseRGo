@@ -1,4 +1,4 @@
-module api/test
+module github.com/SleepyXm/SynapseRGo
 
 go 1.25.0
 

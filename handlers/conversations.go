@@ -1,10 +1,11 @@
 package handlers
 
 import (
-	"api/test/structs"
 	"database/sql"
 	"net/http"
 	"time"
+
+	"github.com/SleepyXm/SynapseRGo/structs"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

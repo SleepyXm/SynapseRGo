@@ -1,10 +1,11 @@
 package handlers
 
 import (
-	"api/test/structs"
 	"database/sql"
 	"encoding/json"
 	"net/http"
+
+	"github.com/SleepyXm/SynapseRGo/structs"
 
 	"github.com/gin-gonic/gin"
 )

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"api/test/structs"
 	"bufio"
 	"bytes"
 	"database/sql"
@@ -10,6 +9,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/SleepyXm/SynapseRGo/structs"
 
 	"github.com/gin-gonic/gin"
 )

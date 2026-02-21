@@ -1,13 +1,14 @@
 package handlers
 
 import (
-	"api/test/structs"
 	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/SleepyXm/SynapseRGo/structs"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
