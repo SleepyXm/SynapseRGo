@@ -11,34 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func SaveChunk(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		conversationID := c.Param("conversation_id")
-		userID := c.GetString("userID")
-
-		var messages []map[string]any
-		if err := c.ShouldBindJSON(&messages); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
-			return
-		}
-
-		manager := NewConversationManager(conversationID, userID)
-		if err := manager.Load(db); err != nil {
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-			return
-		}
-
-		manager.Append(messages)
-
-		if err := manager.Persist(db); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to persist"})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"status": "ok", "chunk_size": len(messages)})
-	}
-}
-
 func LoadChunks(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		conversationID := c.Param("conversation_id")
