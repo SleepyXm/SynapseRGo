@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/SleepyXm/SynapseRGo/structs"
+	"Synapse/structs"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -113,20 +113,36 @@ func Me(db *sql.DB) gin.HandlerFunc {
 
 		var username string
 		var hfTokens []byte
-		err := db.QueryRow("SELECT username, hf_tokens FROM users WHERE id = $1::uuid", userID).Scan(&username, &hfTokens)
+
+		err := db.QueryRow(
+			"SELECT username, hf_tokens FROM users WHERE id = $1::uuid",
+			userID,
+		).Scan(&username, &hfTokens)
+
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
 
-		var tokenList []string
-		if hfTokens != nil {
-			json.Unmarshal(hfTokens, &tokenList)
+		var tokens []structs.HFToken
+
+		if len(hfTokens) > 0 {
+			if err := json.Unmarshal(hfTokens, &tokens); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "failed to parse hf tokens",
+				})
+				return
+			}
+		}
+
+		tokenNames := make([]string, 0, len(tokens))
+		for _, token := range tokens {
+			tokenNames = append(tokenNames, token.Name)
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"username": username,
-			"hf_token": tokenList,
+			"username":       username,
+			"hf_token_names": tokenNames,
 		})
 	}
 }

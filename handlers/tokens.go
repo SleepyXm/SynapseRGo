@@ -3,9 +3,12 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"log"
 	"net/http"
 
-	"github.com/SleepyXm/SynapseRGo/structs"
+	"Synapse/structs"
+	"Synapse/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,42 +18,53 @@ func AddHFToken(db *sql.DB) gin.HandlerFunc {
 		userID := c.GetString("userID")
 
 		var req structs.HFTokenRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		if err := c.ShouldBindJSON(&req); err != nil || req.Name == "" || req.HFToken == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "name and hf_token are required"})
 			return
 		}
 
-		// Get current tokens
-		var hfTokens []byte
-		err := db.QueryRow("SELECT hf_tokens FROM users WHERE id = $1", userID).Scan(&hfTokens)
-		if err != nil {
+		var raw []byte
+		if err := db.QueryRow("SELECT hf_tokens FROM users WHERE id = $1", userID).Scan(&raw); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "query failed"})
 			return
 		}
 
-		var currentTokens []string
-		if hfTokens != nil {
-			json.Unmarshal(hfTokens, &currentTokens)
+		var tokens []structs.HFToken
+		if raw != nil {
+			json.Unmarshal(raw, &tokens)
 		}
 
-		// Check duplicate
-		for _, t := range currentTokens {
-			if t == req.HFToken {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Token already exists"})
+		for _, t := range tokens {
+			if t.Name == req.Name {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "token name already exists"})
 				return
 			}
 		}
 
-		currentTokens = append(currentTokens, req.HFToken)
-		updated, _ := json.Marshal(currentTokens)
-
-		_, err = db.Exec("UPDATE users SET hf_tokens = $1 WHERE id = $2", updated, userID)
+		encrypted, err := utils.Encrypt(req.HFToken)
 		if err != nil {
+			log.Printf("HF token encryption failed for user %s: %v", userID, err)
+
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "encryption failed",
+			})
+			return
+		}
+
+		tokens = append(tokens, structs.HFToken{Name: req.Name, Value: encrypted})
+		updated, _ := json.Marshal(tokens)
+
+		if _, err := db.Exec("UPDATE users SET hf_tokens = $1 WHERE id = $2", updated, userID); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update"})
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "HF Token added successfully", "hf_tokens": currentTokens})
+		names := make([]string, len(tokens))
+		for i, t := range tokens {
+			names[i] = t.Name
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "HF Token added successfully", "hf_token_names": names})
 	}
 }
 
@@ -58,29 +72,27 @@ func RemoveHFToken(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.GetString("userID")
 
-		var req structs.HFTokenRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		var req structs.RemoveHFTokenRequest
+		if err := c.ShouldBindJSON(&req); err != nil || req.Name == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
 			return
 		}
 
-		var hfTokens []byte
-		err := db.QueryRow("SELECT hf_tokens FROM users WHERE id = $1", userID).Scan(&hfTokens)
-		if err != nil {
+		var raw []byte
+		if err := db.QueryRow("SELECT hf_tokens FROM users WHERE id = $1", userID).Scan(&raw); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "query failed"})
 			return
 		}
 
-		var currentTokens []string
-		if hfTokens != nil {
-			json.Unmarshal(hfTokens, &currentTokens)
+		var tokens []structs.HFToken
+		if raw != nil {
+			json.Unmarshal(raw, &tokens)
 		}
 
-		// Find and remove
 		found := false
-		filtered := []string{}
-		for _, t := range currentTokens {
-			if t == req.HFToken {
+		filtered := []structs.HFToken{}
+		for _, t := range tokens {
+			if t.Name == req.Name {
 				found = true
 				continue
 			}
@@ -88,17 +100,42 @@ func RemoveHFToken(db *sql.DB) gin.HandlerFunc {
 		}
 
 		if !found {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Token not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "token not found"})
 			return
 		}
 
 		updated, _ := json.Marshal(filtered)
-		_, err = db.Exec("UPDATE users SET hf_tokens = $1 WHERE id = $2", updated, userID)
-		if err != nil {
+		if _, err := db.Exec("UPDATE users SET hf_tokens = $1 WHERE id = $2", updated, userID); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update"})
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "HF Token deleted successfully", "hf_tokens": filtered})
+		names := make([]string, len(filtered))
+		for i, t := range filtered {
+			names[i] = t.Name
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "HF Token removed successfully", "hf_token_names": names})
 	}
+}
+
+// GetDecryptedToken — call this from your chat handler instead of receiving the raw token from frontend
+func GetDecryptedToken(db *sql.DB, userID, tokenName string) (string, error) {
+	var raw []byte
+	if err := db.QueryRow("SELECT hf_tokens FROM users WHERE id = $1", userID).Scan(&raw); err != nil {
+		return "", err
+	}
+
+	var tokens []structs.HFToken
+	if err := json.Unmarshal(raw, &tokens); err != nil {
+		return "", err
+	}
+
+	for _, t := range tokens {
+		if t.Name == tokenName {
+			return utils.Decrypt(t.Value)
+		}
+	}
+
+	return "", errors.New("token not found")
 }

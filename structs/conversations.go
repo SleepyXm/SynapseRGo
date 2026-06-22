@@ -21,7 +21,7 @@ type ModelSettings struct {
 
 type ChatRequest struct {
 	ModelID      string        `json:"modelId" binding:"required"`
-	HFToken      string        `json:"hfToken" binding:"required"`
+	HFTokenName  string        `json:"hfTokenName"`
 	Conversation []Message     `json:"conversation" binding:"required"`
 	Settings     ModelSettings `json:"settings"`
 }

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/SleepyXm/SynapseRGo/structs"
+	"Synapse/structs"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

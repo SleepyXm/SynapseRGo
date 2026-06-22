@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/SleepyXm/SynapseRGo/routes"
+	"Synapse/routes"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SleepyXm/SynapseRGo/structs"
+	"Synapse/structs"
 
 	"github.com/gin-gonic/gin"
 )
@@ -84,7 +84,6 @@ func generateTitle(hfToken, modelID, firstMessage string) string {
 
 	return "Untitled Conversation"
 }
-
 func ChatStream(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		conversationID := c.Query("conversation_id")
@@ -98,6 +97,17 @@ func ChatStream(db *sql.DB) gin.HandlerFunc {
 		var req structs.ChatRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+			return
+		}
+
+		if strings.TrimSpace(req.HFTokenName) == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "hfTokenName required"})
+			return
+		}
+
+		hfToken, err := GetDecryptedToken(db, userID, req.HFTokenName)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to load HF token"})
 			return
 		}
 
@@ -151,7 +161,7 @@ func ChatStream(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		httpReq.Header.Set("Authorization", "Bearer "+req.HFToken)
+		httpReq.Header.Set("Authorization", "Bearer "+hfToken)
 		httpReq.Header.Set("Content-Type", "application/json")
 
 		httpClient := &http.Client{Timeout: 120 * time.Second}
@@ -236,7 +246,7 @@ func ChatStream(db *sql.DB) gin.HandlerFunc {
 				return
 			}
 
-			title := generateTitle(req.HFToken, req.ModelID, firstMessage)
+			title := generateTitle(hfToken, req.ModelID, firstMessage)
 
 			_, _ = db.Exec(
 				"UPDATE conversations SET title = $1 WHERE id = $2",
