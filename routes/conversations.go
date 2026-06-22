@@ -15,5 +15,7 @@ func RegisterConversationRoutes(rg *gin.RouterGroup, db *sql.DB, jwtSecret []byt
 
 	rg.POST("/create", auth, handlers.CreateConversation(db))
 	rg.GET("/list", middleware.AuthMiddleware(db, jwtSecret), handlers.ListConversations(db))
+	rg.DELETE("/:conversation_id", auth, handlers.DeleteConversation(db))
+	rg.PATCH("/:conversation_id", auth, handlers.UpdateConversation(db))
 	rg.GET("/:conversation_id/chunk", middleware.AuthMiddleware(db, jwtSecret), handlers.LoadChunks(db))
 }

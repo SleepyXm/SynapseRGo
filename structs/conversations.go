@@ -11,15 +11,28 @@ type Message struct {
 	Content string `json:"content"`
 }
 
+type ModelSettings struct {
+	Temperature      *float64 `json:"temperature,omitempty"`
+	TopP             *float64 `json:"top_p,omitempty"`
+	MaxTokens        *int     `json:"max_tokens,omitempty"`
+	PresencePenalty  *float64 `json:"presence_penalty,omitempty"`
+	FrequencyPenalty *float64 `json:"frequency_penalty,omitempty"`
+}
+
 type ChatRequest struct {
-	ModelID      string    `json:"modelId"`
-	HFToken      string    `json:"hfToken" binding:"required"`
-	Conversation []Message `json:"conversation" binding:"required"`
+	ModelID      string        `json:"modelId" binding:"required"`
+	HFToken      string        `json:"hfToken" binding:"required"`
+	Conversation []Message     `json:"conversation" binding:"required"`
+	Settings     ModelSettings `json:"settings"`
 }
 
 type CreateConversationRequest struct {
 	Title    string `json:"title" binding:"required"`
 	LLMModel string `json:"llm_model" binding:"required"`
+}
+
+type UpdateConversationRequest struct {
+	Title string `json:"title" binding:"required"`
 }
 
 type AddLLMRequest struct {

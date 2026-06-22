@@ -46,7 +46,7 @@ func Signup(db *sql.DB) gin.HandlerFunc {
 		}
 
 		_, err = db.Exec(
-			"INSERT INTO users (id, username, password, created_at) VALUES ($1, $2, $3, $4, NOW())",
+			"INSERT INTO users (id, username, password, created_at) VALUES ($1, $2, $3, NOW())",
 			uuid.New().String(), req.Username, hashed,
 		)
 		if err != nil {

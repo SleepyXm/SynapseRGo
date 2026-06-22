@@ -97,3 +97,58 @@ func CreateConversation(db *sql.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{"id": conversationID})
 	}
 }
+
+func UpdateConversation(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		conversationID := c.Param("conversation_id")
+		userID := c.GetString("userID")
+
+		var req structs.UpdateConversationRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+			return
+		}
+
+		result, err := db.Exec(
+			`UPDATE conversations SET title = $1, updated_at = NOW()
+             WHERE id = $2 AND user_id = $3::uuid`,
+			req.Title, conversationID, userID,
+		)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		rows, _ := result.RowsAffected()
+		if rows == 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "not found or unauthorized"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "updated"})
+	}
+}
+
+func DeleteConversation(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		conversationID := c.Param("conversation_id")
+		userID := c.GetString("userID")
+
+		result, err := db.Exec(
+			`DELETE FROM conversations WHERE id = $1 AND user_id = $2::uuid`,
+			conversationID, userID,
+		)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		rows, _ := result.RowsAffected()
+		if rows == 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "not found or unauthorized"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "deleted"})
+	}
+}
