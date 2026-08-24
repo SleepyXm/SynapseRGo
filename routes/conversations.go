@@ -5,17 +5,17 @@ import (
 
 	"Synapse/middleware"
 
-	"Synapse/handlers"
+	handlers "Synapse/handlers/conversations"
 
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterConversationRoutes(rg *gin.RouterGroup, db *sql.DB, jwtSecret []byte) {
-	auth := middleware.AuthMiddleware(db, jwtSecret)
+func RegisterConversationRoutes(rg *gin.RouterGroup, db *sql.DB) {
+	auth := middleware.AuthMiddleware(db)
 
 	rg.POST("/create", auth, handlers.CreateConversation(db))
-	rg.GET("/list", middleware.AuthMiddleware(db, jwtSecret), handlers.ListConversations(db))
+	rg.GET("/list", auth, handlers.ListConversations(db))
 	rg.DELETE("/:conversation_id", auth, handlers.DeleteConversation(db))
 	rg.PATCH("/:conversation_id", auth, handlers.UpdateConversation(db))
-	rg.GET("/:conversation_id/chunk", middleware.AuthMiddleware(db, jwtSecret), handlers.LoadChunks(db))
+	rg.GET("/:conversation_id/chunk", auth, handlers.LoadChunks(db))
 }

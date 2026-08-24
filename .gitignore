@@ -11,6 +11,10 @@
 # Test binary, built with `go test -c`
 *.test
 
+# Local backend executables and live-reload output
+/synapsergo
+/tmp/
+
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
@@ -23,3 +27,8 @@ go.work.sum
 
 # env file
 .env
+
+# Python migration tooling
+__pycache__/
+*.py[cod]
+.venv/

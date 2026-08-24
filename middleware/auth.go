@@ -3,13 +3,13 @@ package middleware
 import (
 	"database/sql"
 	"net/http"
-	"strings"
+
+	"Synapse/utils"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
-func AuthMiddleware(db *sql.DB, jwtSecret []byte) gin.HandlerFunc {
+func AuthMiddleware(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := c.Cookie("access_token")
 		if err != nil {
@@ -18,46 +18,29 @@ func AuthMiddleware(db *sql.DB, jwtSecret []byte) gin.HandlerFunc {
 			return
 		}
 
-		if !strings.HasPrefix(token, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token format"})
-			c.Abort()
-			return
-		}
-
-		tokenString := strings.TrimPrefix(token, "Bearer ")
-
-		parsed, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-			if t.Method != jwt.SigningMethodHS256 {
-				return nil, jwt.ErrSignatureInvalid
-			}
-			return jwtSecret, nil
-		})
-
-		if err != nil || !parsed.Valid {
+		userID, err := utils.DecodeAccessToken(token)
+		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication credentials"})
 			c.Abort()
 			return
 		}
 
-		claims, ok := parsed.Claims.(jwt.MapClaims)
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+		var id, username, email string
+		err = db.QueryRowContext(c, "SELECT id, username, COALESCE(email, '') FROM users WHERE id = $1", userID).Scan(&id, &username, &email)
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 			c.Abort()
 			return
 		}
-
-		userID := claims["sub"].(string)
-
-		var id, username string
-		err = db.QueryRow("SELECT id, username FROM users WHERE id = $1", userID).Scan(&id, &username)
-		if err == sql.ErrNoRows {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not verify session"})
 			c.Abort()
 			return
 		}
 
 		c.Set("userID", id)
 		c.Set("username", username)
+		c.Set("email", email)
 
 		c.Next()
 	}

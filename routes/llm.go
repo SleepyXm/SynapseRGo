@@ -3,13 +3,12 @@ package routes
 import (
 	"database/sql"
 
-	"Synapse/handlers"
+	handlers "Synapse/handlers/llm"
 	"Synapse/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterLLMRoutes(rg *gin.RouterGroup, db *sql.DB, jwtSecret []byte) {
-
-	rg.POST("/chat/stream", middleware.AuthMiddleware(db, jwtSecret), handlers.ChatStream(db))
+func RegisterLLMRoutes(rg *gin.RouterGroup, db *sql.DB) {
+	rg.POST("/chat/stream", middleware.AuthMiddleware(db), handlers.ChatStream(db))
 }

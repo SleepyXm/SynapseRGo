@@ -20,8 +20,10 @@ type ModelSettings struct {
 }
 
 type ChatRequest struct {
-	ModelID      string        `json:"modelId" binding:"required"`
-	HFTokenName  string        `json:"hfTokenName"`
+	ModelID     string `json:"modelId" binding:"required"`
+	HFTokenName string `json:"hfTokenName"`
+	// Conversation contains only messages created by the current interaction.
+	// Stored history is loaded and bounded by the backend.
 	Conversation []Message     `json:"conversation" binding:"required"`
 	Settings     ModelSettings `json:"settings"`
 }
@@ -35,9 +37,8 @@ type UpdateConversationRequest struct {
 	Title string `json:"title" binding:"required"`
 }
 
-type AddLLMRequest struct {
-	LLMID   string `json:"llm_id" binding:"required"`
-	LLMName string `json:"llm_name" binding:"required"`
+type FavoriteRequest struct {
+	HFID string `json:"hf_id" binding:"required"`
 }
 
 type StoredMessage struct {

@@ -3,21 +3,21 @@ package main
 import (
 	"database/sql"
 	"log"
-	"os"
+	"time"
 
 	"Synapse/routes"
+	"Synapse/utils"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/joho/godotenv"
 )
 
 var db *sql.DB
 
 func initDB() {
 	var err error
-	db, err = sql.Open("pgx", os.Getenv("DATABASE"))
+	db, err = sql.Open("pgx", utils.Cfg.DatabaseURL)
 	if err != nil {
 		log.Fatal("Failed to open DB:", err)
 	}
@@ -27,29 +27,28 @@ func initDB() {
 	}
 
 	log.Println("DB connected")
+
+	db.SetMaxOpenConns(100)
+	db.SetMaxIdleConns(100)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxIdleTime(5 * time.Minute)
 }
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found", err)
-	}
-
+	utils.Load()
+	utils.InitResend()
+	utils.InitRedis()
 	initDB()
 
-	var jwtSecret []byte
-
-	allowedOrigins := []string{}
-	if dev := os.Getenv("DEV_SERVER"); dev != "" {
-		allowedOrigins = append(allowedOrigins, dev)
-	}
-	if prod := os.Getenv("FRONTEND_PROD"); prod != "" {
-		allowedOrigins = append(allowedOrigins, prod)
-	}
-	if len(allowedOrigins) == 0 {
-		allowedOrigins = []string{"http://localhost:3000"}
+	allowedOrigins := []string{utils.Cfg.DevServer}
+	if utils.Cfg.FrontendProd != "" {
+		allowedOrigins = append(allowedOrigins, utils.Cfg.FrontendProd)
 	}
 
 	router := gin.Default()
+	if err := router.SetTrustedProxies(nil); err != nil {
+		log.Fatal(err)
+	}
 
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
@@ -58,14 +57,12 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	auth := router.Group("/auth")
-	routes.RegisterAuthRoutes(auth, db, jwtSecret)
-	llm := router.Group("/llm")
-	routes.RegisterLLMRoutes(llm, db, jwtSecret)
-	conversations := router.Group("/conversation")
-	routes.RegisterConversationRoutes(conversations, db, jwtSecret)
-	tokens := router.Group("/tokens")
-	routes.RegisterTokenRoutes(tokens, db, jwtSecret)
+	api := router.Group("/api")
+	routes.RegisterAuthRoutes(api.Group("/auth"), db)
+	routes.RegisterLLMRoutes(api.Group("/llm"), db)
+	routes.RegisterConversationRoutes(api.Group("/conversation"), db)
+	routes.RegisterTokenRoutes(api.Group("/tokens"), db)
+	routes.RegisterFavoriteRoutes(api.Group("/user"), db)
 
 	router.Run(":8000")
 }

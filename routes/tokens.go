@@ -3,15 +3,15 @@ package routes
 import (
 	"database/sql"
 
-	"Synapse/handlers"
+	handlers "Synapse/handlers/tokens"
 	"Synapse/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterTokenRoutes(rg *gin.RouterGroup, db *sql.DB, jwtSecret []byte) {
-	auth := middleware.AuthMiddleware(db, jwtSecret)
+func RegisterTokenRoutes(rg *gin.RouterGroup, db *sql.DB) {
+	auth := middleware.AuthMiddleware(db)
 
 	rg.POST("/hf_token", auth, handlers.AddHFToken(db))
-	rg.DELETE("/hf_token", middleware.AuthMiddleware(db, jwtSecret), handlers.RemoveHFToken(db))
+	rg.DELETE("/hf_token", auth, handlers.RemoveHFToken(db))
 }
