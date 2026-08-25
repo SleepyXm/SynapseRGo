@@ -53,14 +53,19 @@ func (c *Chunker) Split(ctx context.Context, documents []Document) ([]Chunk, err
 	seenDocumentIDs := make(map[string]struct{}, len(documents))
 	langChainDocuments := make([]schema.Document, 0, len(documents))
 	for _, document := range documents {
-		documentID := strings.TrimSpace(document.ID)
-		if documentID == "" {
+		segmentID := strings.TrimSpace(document.ID)
+		if segmentID == "" {
 			return nil, errors.New("document ID is required")
 		}
-		if _, exists := seenDocumentIDs[documentID]; exists {
-			return nil, fmt.Errorf("duplicate document ID %q", documentID)
+		if _, exists := seenDocumentIDs[segmentID]; exists {
+			return nil, fmt.Errorf("duplicate document ID %q", segmentID)
 		}
-		seenDocumentIDs[documentID] = struct{}{}
+		seenDocumentIDs[segmentID] = struct{}{}
+
+		documentID := strings.TrimSpace(document.DocumentID)
+		if documentID == "" {
+			documentID = segmentID
+		}
 
 		if strings.TrimSpace(document.Content) == "" {
 			continue
@@ -68,7 +73,7 @@ func (c *Chunker) Split(ctx context.Context, documents []Document) ([]Chunk, err
 
 		source := strings.TrimSpace(document.Source)
 		if source == "" {
-			source = documentID
+			source = segmentID
 		}
 		metadata := make(map[string]any, len(document.Metadata)+2)
 		for key, value := range document.Metadata {

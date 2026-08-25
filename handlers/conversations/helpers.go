@@ -76,9 +76,7 @@ func (cm *ConversationManager) Load(db *sql.DB) error {
 	).Scan(&compressedData, &ownerID)
 
 	if err == sql.ErrNoRows {
-		cm.Messages = []structs.StoredMessage{}
-		cm.loaded = true
-		return nil
+		return fmt.Errorf("conversation not found: %w", sql.ErrNoRows)
 	}
 	if err != nil {
 		return err
@@ -122,15 +120,15 @@ func (cm *ConversationManager) Persist(db *sql.DB) error {
 	return err
 }
 
-func (cm *ConversationManager) GetMemorySnapshot(recentN int) []structs.LLMMessage {
+// GetHistorySnapshot returns only stored user and assistant turns. System
+// instructions belong to the active runtime, not compressed conversation data.
+func (cm *ConversationManager) GetHistorySnapshot(recentN int) []structs.LLMMessage {
 	messages := cm.Messages
 	if len(messages) > recentN {
 		messages = messages[len(messages)-recentN:]
 	}
 
-	snapshot := []structs.LLMMessage{
-		{Role: "system", Content: "You are an assistant aware of the recent conversation context with the user."},
-	}
+	snapshot := []structs.LLMMessage{}
 	for _, m := range messages {
 		content, _ := m.Message["content"].(string)
 		snapshot = append(snapshot, structs.LLMMessage{

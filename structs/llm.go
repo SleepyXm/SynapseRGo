@@ -15,15 +15,3 @@ type OpenAIRequest struct {
 	PresencePenalty  *float64     `json:"presence_penalty,omitempty"`
 	FrequencyPenalty *float64     `json:"frequency_penalty,omitempty"`
 }
-
-type StreamDelta struct {
-	Content string `json:"content"`
-}
-
-type StreamChoice struct {
-	Delta StreamDelta `json:"delta"`
-}
-
-type StreamChunk struct {
-	Choices []StreamChoice `json:"choices"`
-}

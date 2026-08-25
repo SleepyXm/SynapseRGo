@@ -14,6 +14,8 @@ type Config struct {
 	FrontendProd             string
 	ResendAPIKey             string
 	RedisAddr                string
+	RAGObjectRoot            string
+	RAGWorkerPollSeconds     int
 }
 
 type Claims struct {

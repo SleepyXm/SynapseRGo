@@ -6,26 +6,12 @@ import (
 	"time"
 )
 
-type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
 type ModelSettings struct {
 	Temperature      *float64 `json:"temperature,omitempty"`
 	TopP             *float64 `json:"top_p,omitempty"`
 	MaxTokens        *int     `json:"max_tokens,omitempty"`
 	PresencePenalty  *float64 `json:"presence_penalty,omitempty"`
 	FrequencyPenalty *float64 `json:"frequency_penalty,omitempty"`
-}
-
-type ChatRequest struct {
-	ModelID     string `json:"modelId" binding:"required"`
-	HFTokenName string `json:"hfTokenName"`
-	// Conversation contains only messages created by the current interaction.
-	// Stored history is loaded and bounded by the backend.
-	Conversation []Message     `json:"conversation" binding:"required"`
-	Settings     ModelSettings `json:"settings"`
 }
 
 type CreateConversationRequest struct {
